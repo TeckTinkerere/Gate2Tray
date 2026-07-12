@@ -24,6 +24,7 @@ export type MenuItem = {
 };
 
 export type FlightInventory = {
+  flightId: string;
   itemId: string;
   loaded: number;
   reserved: number;
@@ -56,6 +57,7 @@ export type Order = {
 
 export type AgentAction = {
   id: string;
+  flightId: string;
   type: "observed" | "recommended" | "approved" | "executed" | "exception";
   title: string;
   detail: string;
@@ -73,22 +75,25 @@ export type ForecastResult = {
 
 export type DemoState = {
   flight: Flight;
+  flights: Flight[];
   menuItems: MenuItem[];
   inventory: FlightInventory[];
   orders: Order[];
   agentActions: AgentAction[];
   forecast: ForecastResult | null;
+  forecasts: Record<string, ForecastResult | null>;
   discountApproval: "idle" | "pending" | "approved";
+  discountApprovals: Record<string, "idle" | "pending" | "approved">;
 };
 
 export type DemoCommand =
-  | { type: "run_agent" }
-  | { type: "approve_discount" }
-  | { type: "place_order"; payload: { itemId: string; seat: string; serviceWindow: ServiceWindow } }
-  | { type: "start_service" }
-  | { type: "pause_service" }
-  | { type: "mark_item_unavailable"; payload: { itemId: string } }
-  | { type: "mark_order_delivered"; payload: { orderId: string } }
-  | { type: "choose_substitute"; payload: { orderId: string; itemId: string } }
-  | { type: "refund_order"; payload: { orderId: string } }
+  | { type: "run_agent"; flightId: string }
+  | { type: "approve_discount"; flightId: string }
+  | { type: "place_order"; flightId: string; payload: { itemId: string; seat: string; serviceWindow: ServiceWindow } }
+  | { type: "start_service"; flightId: string }
+  | { type: "pause_service"; flightId: string }
+  | { type: "mark_item_unavailable"; flightId: string; payload: { itemId: string } }
+  | { type: "mark_order_delivered"; flightId: string; payload: { orderId: string } }
+  | { type: "choose_substitute"; flightId: string; payload: { orderId: string; itemId: string } }
+  | { type: "refund_order"; flightId: string; payload: { orderId: string } }
   | { type: "reset_demo" };

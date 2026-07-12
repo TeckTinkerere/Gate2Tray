@@ -60,6 +60,7 @@ function createDatabase() {
     );
     CREATE TABLE IF NOT EXISTS agent_actions (
       id TEXT PRIMARY KEY,
+      flight_id TEXT NOT NULL,
       type TEXT NOT NULL,
       title TEXT NOT NULL,
       detail TEXT NOT NULL,
@@ -71,6 +72,10 @@ function createDatabase() {
       description TEXT NOT NULL
     );
   `);
+  const actionColumns = database.prepare("PRAGMA table_info(agent_actions)").all() as Array<{ name: string }>;
+  if (!actionColumns.some((column) => column.name === "flight_id")) {
+    database.exec("ALTER TABLE agent_actions ADD COLUMN flight_id TEXT NOT NULL DEFAULT 'MC201'");
+  }
   seedIfEmpty(database);
   return database;
 }
@@ -91,28 +96,44 @@ function db() {
 }
 
 function readState(database: Database.Database): DemoState {
-  const flightRow = database.prepare("SELECT * FROM flights LIMIT 1").get() as Record<string, unknown>;
-  const flight: Flight = {
+  const flightRows = database.prepare("SELECT * FROM flights ORDER BY rowid").all() as Record<string, unknown>[];
+  const flights = flightRows.map((flightRow): Flight => ({
     id: String(flightRow.id), flightNumber: String(flightRow.flight_number), airline: String(flightRow.airline), origin: String(flightRow.origin), destination: String(flightRow.destination), departureTime: String(flightRow.departure_time), gate: String(flightRow.gate), passengers: Number(flightRow.passengers), currentDiscount: Number(flightRow.current_discount), serviceStatus: flightRow.service_status as Flight["serviceStatus"],
-  };
+  }));
+  const flight = flights.find((entry) => entry.id === "MC201") ?? flights[0];
+  if (!flight) throw new Error("Demo database has no flights.");
   const menuItems = (database.prepare("SELECT * FROM menu_items ORDER BY rowid").all() as Record<string, unknown>[]).map((row): MenuItem => ({ id: String(row.id), name: String(row.name), description: String(row.description), price: Number(row.price), cost: Number(row.cost), dietary: JSON.parse(String(row.dietary_json)) as DietaryLabel[], symbol: String(row.symbol) }));
-  const inventory = (database.prepare("SELECT * FROM flight_inventory ORDER BY rowid").all() as Record<string, unknown>[]).map((row): FlightInventory => ({ itemId: String(row.item_id), loaded: Number(row.loaded), reserved: Number(row.reserved), unavailable: Boolean(row.unavailable) }));
+  const inventory = (database.prepare("SELECT * FROM flight_inventory ORDER BY rowid").all() as Record<string, unknown>[]).map((row): FlightInventory => ({ flightId: String(row.flight_id), itemId: String(row.item_id), loaded: Number(row.loaded), reserved: Number(row.reserved), unavailable: Boolean(row.unavailable) }));
   const orders = (database.prepare("SELECT * FROM orders ORDER BY created_at").all() as Record<string, unknown>[]).map((row): Order => ({ id: String(row.id), flightId: String(row.flight_id), itemId: String(row.item_id), originalItemId: row.original_item_id ? String(row.original_item_id) : undefined, seat: String(row.seat), section: row.section as Order["section"], serviceWindow: row.service_window as Order["serviceWindow"], amount: Number(row.amount), status: row.status as Order["status"], createdAt: String(row.created_at), updatedAt: String(row.updated_at) }));
-  const agentActions = (database.prepare("SELECT * FROM agent_actions ORDER BY timestamp DESC").all() as Record<string, unknown>[]).map((row): AgentAction => ({ id: String(row.id), type: row.type as AgentAction["type"], title: String(row.title), detail: String(row.detail), timestamp: String(row.timestamp) }));
-  return { flight, menuItems, inventory, orders, agentActions, forecast: flightRow.forecast_json ? JSON.parse(String(flightRow.forecast_json)) as ForecastResult : null, discountApproval: flightRow.discount_approval as DemoState["discountApproval"] };
+  const agentActions = (database.prepare("SELECT * FROM agent_actions ORDER BY timestamp DESC").all() as Record<string, unknown>[]).map((row): AgentAction => ({ id: String(row.id), flightId: String(row.flight_id), type: row.type as AgentAction["type"], title: String(row.title), detail: String(row.detail), timestamp: String(row.timestamp) }));
+  const forecasts = Object.fromEntries(flightRows.map((row) => [
+    String(row.id),
+    row.forecast_json ? JSON.parse(String(row.forecast_json)) as ForecastResult : null,
+  ]));
+  const forecast = forecasts[flight.id] ?? null;
+  const discountApprovals = Object.fromEntries(flightRows.map((row) => [
+    String(row.id),
+    row.discount_approval as DemoState["discountApproval"],
+  ]));
+  return { flight, flights, menuItems, inventory, orders, agentActions, forecast, forecasts, discountApproval: discountApprovals[flight.id], discountApprovals };
 }
 
 function writeState(database: Database.Database, state: DemoState) {
   database.exec("DELETE FROM flights; DELETE FROM menu_items; DELETE FROM flight_inventory; DELETE FROM orders; DELETE FROM agent_actions;");
-  database.prepare("INSERT INTO flights VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").run(state.flight.id, state.flight.flightNumber, state.flight.airline, state.flight.origin, state.flight.destination, state.flight.departureTime, state.flight.gate, state.flight.passengers, state.flight.currentDiscount, state.flight.serviceStatus, state.forecast ? JSON.stringify(state.forecast) : null, state.discountApproval);
+  const insertFlight = database.prepare("INSERT INTO flights VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+  state.flights.forEach((flight) => {
+    const forecast = state.forecasts[flight.id] ?? (flight.id === state.flight.id ? state.forecast : null);
+    const discountApproval = state.discountApprovals[flight.id] ?? (flight.id === state.flight.id ? state.discountApproval : "idle");
+    insertFlight.run(flight.id, flight.flightNumber, flight.airline, flight.origin, flight.destination, flight.departureTime, flight.gate, flight.passengers, flight.currentDiscount, flight.serviceStatus, forecast ? JSON.stringify(forecast) : null, discountApproval);
+  });
   const insertItem = database.prepare("INSERT INTO menu_items VALUES (?, ?, ?, ?, ?, ?, ?)");
   state.menuItems.forEach((item) => insertItem.run(item.id, item.name, item.description, item.price, item.cost, JSON.stringify(item.dietary), item.symbol));
   const insertInventory = database.prepare("INSERT INTO flight_inventory VALUES (?, ?, ?, ?, ?)");
-  state.inventory.forEach((row) => insertInventory.run(state.flight.id, row.itemId, row.loaded, row.reserved, row.unavailable ? 1 : 0));
+  state.inventory.forEach((row) => insertInventory.run(row.flightId, row.itemId, row.loaded, row.reserved, row.unavailable ? 1 : 0));
   const insertOrder = database.prepare("INSERT INTO orders VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
   state.orders.forEach((order) => insertOrder.run(order.id, order.flightId, order.itemId, order.originalItemId ?? null, order.seat, order.section, order.serviceWindow, order.amount, order.status, order.createdAt, order.updatedAt));
-  const insertAction = database.prepare("INSERT INTO agent_actions VALUES (?, ?, ?, ?, ?)");
-  state.agentActions.forEach((entry) => insertAction.run(entry.id, entry.type, entry.title, entry.detail, entry.timestamp));
+  const insertAction = database.prepare("INSERT INTO agent_actions (id, flight_id, type, title, detail, timestamp) VALUES (?, ?, ?, ?, ?, ?)");
+  state.agentActions.forEach((entry) => insertAction.run(entry.id, entry.flightId, entry.type, entry.title, entry.detail, entry.timestamp));
 }
 
 export function getDemoState() {

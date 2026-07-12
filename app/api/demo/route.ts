@@ -7,15 +7,15 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const commandSchema = z.discriminatedUnion("type", [
-  z.object({ type: z.literal("run_agent") }),
-  z.object({ type: z.literal("approve_discount") }),
-  z.object({ type: z.literal("place_order"), payload: z.object({ itemId: z.string(), seat: z.string(), serviceWindow: z.enum(["Main service", "After take-off"]) }) }),
-  z.object({ type: z.literal("start_service") }),
-  z.object({ type: z.literal("pause_service") }),
-  z.object({ type: z.literal("mark_item_unavailable"), payload: z.object({ itemId: z.string() }) }),
-  z.object({ type: z.literal("mark_order_delivered"), payload: z.object({ orderId: z.string() }) }),
-  z.object({ type: z.literal("choose_substitute"), payload: z.object({ orderId: z.string(), itemId: z.string() }) }),
-  z.object({ type: z.literal("refund_order"), payload: z.object({ orderId: z.string() }) }),
+  z.object({ type: z.literal("run_agent"), flightId: z.string().min(1) }),
+  z.object({ type: z.literal("approve_discount"), flightId: z.string().min(1) }),
+  z.object({ type: z.literal("place_order"), flightId: z.string().min(1), payload: z.object({ itemId: z.string(), seat: z.string(), serviceWindow: z.enum(["Main service", "After take-off"]) }) }),
+  z.object({ type: z.literal("start_service"), flightId: z.string().min(1) }),
+  z.object({ type: z.literal("pause_service"), flightId: z.string().min(1) }),
+  z.object({ type: z.literal("mark_item_unavailable"), flightId: z.string().min(1), payload: z.object({ itemId: z.string() }) }),
+  z.object({ type: z.literal("mark_order_delivered"), flightId: z.string().min(1), payload: z.object({ orderId: z.string() }) }),
+  z.object({ type: z.literal("choose_substitute"), flightId: z.string().min(1), payload: z.object({ orderId: z.string(), itemId: z.string() }) }),
+  z.object({ type: z.literal("refund_order"), flightId: z.string().min(1), payload: z.object({ orderId: z.string() }) }),
   z.object({ type: z.literal("reset_demo") }),
 ]);
 

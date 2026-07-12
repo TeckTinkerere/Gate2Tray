@@ -35,7 +35,7 @@ export function PassengerOrder({ flightId }: { flightId: string }) {
     setError("");
     try {
       const parsed = checkoutSchema.parse({ itemId: selectedItemId, seat, serviceWindow });
-      const id = await placeOrder(parsed);
+      const id = await placeOrder(flightId, parsed);
       setConfirmation({ id, seat: parsed.seat, amount, itemName: selectedItem?.name ?? "Meal" });
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (checkoutError) {

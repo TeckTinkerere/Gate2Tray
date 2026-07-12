@@ -8,9 +8,11 @@ export const OPERATOR_POLICIES = {
   automaticRefundLimit: 20,
 } as const;
 
-export function forecastDemand(state: DemoState) {
+export function forecastDemand(state: DemoState, flightId = state.flight.id) {
   const expectedOrders = 40;
-  const loadedUnits = state.inventory.reduce((total, row) => total + row.loaded, 0);
+  const loadedUnits = state.inventory
+    .filter((row) => row.flightId === flightId)
+    .reduce((total, row) => total + row.loaded, 0);
   const projectedSurplusUnits = Math.max(0, loadedUnits - expectedOrders);
 
   return {
@@ -20,8 +22,8 @@ export function forecastDemand(state: DemoState) {
   };
 }
 
-export function calculateSurplus(state: DemoState) {
-  const forecast = forecastDemand(state);
+export function calculateSurplus(state: DemoState, flightId = state.flight.id) {
+  const forecast = forecastDemand(state, flightId);
   const averageCost = state.menuItems.reduce((total, item) => total + item.cost, 0) / state.menuItems.length;
   return {
     units: forecast.projectedSurplusUnits,
@@ -29,8 +31,8 @@ export function calculateSurplus(state: DemoState) {
   };
 }
 
-export function recommendDiscount(state: DemoState) {
-  const demand = forecastDemand(state);
+export function recommendDiscount(state: DemoState, flightId = state.flight.id) {
+  const demand = forecastDemand(state, flightId);
   const recommendedDiscount = demand.projectedSurplusUnits >= 6 ? 10 : 0;
   const remainingMargin = 35;
   discountApprovalSchema.parse({ discount: recommendedDiscount, remainingMargin });
@@ -48,7 +50,7 @@ export function findApprovedSubstitutes(state: DemoState, order: Order): MenuIte
   if (!original) return [];
 
   return state.menuItems.filter((item) => {
-    const inventory = state.inventory.find((row) => row.itemId === item.id);
+    const inventory = state.inventory.find((row) => row.flightId === order.flightId && row.itemId === item.id);
     const hasDietaryMatch = original.dietary.every((label) => item.dietary.includes(label));
     return (
       item.id !== original.id &&

@@ -9,7 +9,7 @@ function stateWithPassengerChoice() {
   return {
     ...state,
     inventory: state.inventory.map((row) =>
-      row.itemId === order.itemId ? { ...row, unavailable: true } : row,
+      row.flightId === order.flightId && row.itemId === order.itemId ? { ...row, unavailable: true } : row,
     ),
     orders: state.orders.map((entry) =>
       entry.id === order.id ? { ...entry, status: "action_required" as const } : entry,
@@ -25,6 +25,7 @@ describe("executeDemoCommand", () => {
     expect(() =>
       executeDemoCommand(state, {
         type: "choose_substitute",
+        flightId: order.flightId,
         payload: { orderId: order.id, itemId: "salmon" },
       }),
     ).toThrow(/dietary/i);
@@ -37,6 +38,7 @@ describe("executeDemoCommand", () => {
     expect(() =>
       executeDemoCommand(state, {
         type: "refund_order",
+        flightId: order.flightId,
         payload: { orderId: order.id },
       }),
     ).toThrow(/resolution/i);
@@ -49,6 +51,7 @@ describe("executeDemoCommand", () => {
     expect(() =>
       executeDemoCommand(state, {
         type: "mark_order_delivered",
+        flightId: order.flightId,
         payload: { orderId: order.id },
       }),
     ).toThrow(/active/i);
@@ -58,11 +61,15 @@ describe("executeDemoCommand", () => {
     const state = freshDemoState();
     const order = state.orders[0];
     state.flight.serviceStatus = "active";
+    state.flights = state.flights.map((flight) =>
+      flight.id === order.flightId ? { ...flight, serviceStatus: "active" } : flight,
+    );
     order.status = "refunded";
 
     expect(() =>
       executeDemoCommand(state, {
         type: "mark_order_delivered",
+        flightId: order.flightId,
         payload: { orderId: order.id },
       }),
     ).toThrow(/deliverable/i);

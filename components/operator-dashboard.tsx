@@ -46,7 +46,7 @@ export function OperatorDashboard() {
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" asChild><Link href={`/crew/${state.flight.id}`}>Open crew screen <ExternalLink className="h-4 w-4" /></Link></Button>
-          <Button onClick={runAgent} disabled={!hydrated || state.discountApproval === "pending"}>
+          <Button onClick={() => runAgent(state.flight.id)} disabled={!hydrated || state.discountApproval === "pending"}>
             <Sparkles className="h-4 w-4" /> {state.forecast ? "Run agent again" : "Run Operations Agent"}
           </Button>
         </div>
@@ -84,7 +84,7 @@ export function OperatorDashboard() {
             {!state.forecast ? (
               <div className="mt-6 flex flex-col items-start justify-between gap-4 rounded-lg bg-surface p-4 sm:flex-row sm:items-center">
                 <div><p className="font-semibold">Ready to evaluate MC201</p><p className="mt-1 text-sm text-muted-foreground">Uses passenger count, reservations, loaded stock, margin, and operator policies.</p></div>
-                <Button onClick={runAgent}><Sparkles className="h-4 w-4" /> Run agent</Button>
+                <Button onClick={() => runAgent(state.flight.id)}><Sparkles className="h-4 w-4" /> Run agent</Button>
               </div>
             ) : (
               <div className="mt-6 grid gap-5 sm:grid-cols-3">
@@ -108,7 +108,7 @@ export function OperatorDashboard() {
                     <span className="inline-flex items-center gap-1.5"><Check className="h-4 w-4 text-success" /> Final two units protected</span>
                   </div>
                 </div>
-                <Button onClick={approveDiscount} className="shrink-0">Approve and publish <ArrowRight className="h-4 w-4" /></Button>
+                  <Button onClick={() => approveDiscount(state.flight.id)} className="shrink-0">Approve and publish <ArrowRight className="h-4 w-4" /></Button>
               </div>
             </section>
           )}

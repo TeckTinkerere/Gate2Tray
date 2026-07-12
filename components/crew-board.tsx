@@ -31,8 +31,8 @@ export function CrewBoard({ flightId }: { flightId: string }) {
         <section className="flex flex-col gap-4 border-b border-border pb-6 sm:flex-row sm:items-end sm:justify-between">
           <div><p className="flex items-center gap-2 text-sm font-semibold text-primary-strong"><Plane className="h-4 w-4" /> Cabin fulfillment</p><h1 className="mt-1 text-2xl font-semibold tracking-[-0.025em]">Meal service queue</h1><p className="mt-2 text-sm text-muted-foreground">{activeOrders.length} orders · {state.inventory.reduce((total, row) => total + row.loaded - row.reserved, 0)} meals remaining</p></div>
           <div className="grid grid-cols-2 gap-2 sm:flex">
-            <Button size="lg" onClick={startService} disabled={state.flight.serviceStatus === "active"}><CirclePlay className="h-5 w-5" /> Start service</Button>
-            <Button size="lg" variant={state.flight.serviceStatus === "paused" ? "destructive" : "outline"} onClick={pauseService} disabled={state.flight.serviceStatus === "paused"}><CirclePause className="h-5 w-5" /> Pause service</Button>
+            <Button size="lg" onClick={() => startService(flightId)} disabled={state.flight.serviceStatus === "active"}><CirclePlay className="h-5 w-5" /> Start service</Button>
+            <Button size="lg" variant={state.flight.serviceStatus === "paused" ? "destructive" : "outline"} onClick={() => pauseService(flightId)} disabled={state.flight.serviceStatus === "paused"}><CirclePause className="h-5 w-5" /> Pause service</Button>
           </div>
         </section>
 
@@ -59,8 +59,8 @@ export function CrewBoard({ flightId }: { flightId: string }) {
                             <div className="mt-3 grid grid-cols-2 gap-2 sm:flex sm:justify-end">
                               {order.status === "action_required" ? <Button variant="outline" asChild className="col-span-2 sm:col-span-1"><Link href={`/track/${order.id}`} target="_blank">Open passenger choice <ExternalLink className="h-4 w-4" /></Link></Button> : (
                                 <>
-                                  <UnavailableDialog itemName={item.name} onConfirm={() => markItemUnavailable(item.id)} />
-                                  <Button onClick={() => markOrderDelivered(order.id)} disabled={state.flight.serviceStatus !== "active"}><Check className="h-4 w-4" /> Delivered</Button>
+                                  <UnavailableDialog itemName={item.name} onConfirm={() => markItemUnavailable(flightId, item.id)} />
+                                  <Button onClick={() => markOrderDelivered(flightId, order.id)} disabled={state.flight.serviceStatus !== "active"}><Check className="h-4 w-4" /> Delivered</Button>
                                 </>
                               )}
                             </div>

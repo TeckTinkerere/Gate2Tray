@@ -1,9 +1,9 @@
-import type { DemoState } from "@/lib/types";
+import type { DemoState, Flight } from "@/lib/types";
 
 const now = new Date("2026-07-12T12:56:00+08:00").getTime();
 
-export const initialDemoState: DemoState = {
-  flight: {
+export const demoFlights: Flight[] = [
+  {
     id: "MC201",
     flightNumber: "MC201",
     airline: "Merlion Charter",
@@ -15,6 +15,59 @@ export const initialDemoState: DemoState = {
     currentDiscount: 0,
     serviceStatus: "not_started",
   },
+  {
+    id: "SA418",
+    flightNumber: "SA418",
+    airline: "Straits Air",
+    origin: "Singapore",
+    destination: "Bali",
+    departureTime: "2026-07-12T15:05:00+08:00",
+    gate: "C18",
+    passengers: 72,
+    currentDiscount: 0,
+    serviceStatus: "not_started",
+  },
+  {
+    id: "IH307",
+    flightNumber: "IH307",
+    airline: "Island Hopper",
+    origin: "Seletar",
+    destination: "Tioman",
+    departureTime: "2026-07-12T15:40:00+08:00",
+    gate: "A04",
+    passengers: 28,
+    currentDiscount: 0,
+    serviceStatus: "not_started",
+  },
+  {
+    id: "OE105",
+    flightNumber: "OE105",
+    airline: "Orchard Executive",
+    origin: "Singapore",
+    destination: "Penang",
+    departureTime: "2026-07-12T16:15:00+08:00",
+    gate: "F12",
+    passengers: 36,
+    currentDiscount: 0,
+    serviceStatus: "not_started",
+  },
+  {
+    id: "SB660",
+    flightNumber: "SB660",
+    airline: "Seabreeze Aviation",
+    origin: "Singapore",
+    destination: "Phuket",
+    departureTime: "2026-07-12T16:50:00+08:00",
+    gate: "D16",
+    passengers: 60,
+    currentDiscount: 0,
+    serviceStatus: "paused",
+  },
+];
+
+export const initialDemoState: DemoState = {
+  flight: demoFlights[0],
+  flights: demoFlights,
   menuItems: [
     {
       id: "lemak",
@@ -54,10 +107,26 @@ export const initialDemoState: DemoState = {
     },
   ],
   inventory: [
-    { itemId: "lemak", loaded: 14, reserved: 5, unavailable: false },
-    { itemId: "soba", loaded: 12, reserved: 2, unavailable: false },
-    { itemId: "curry", loaded: 11, reserved: 3, unavailable: false },
-    { itemId: "salmon", loaded: 9, reserved: 1, unavailable: false },
+    { flightId: "MC201", itemId: "lemak", loaded: 14, reserved: 5, unavailable: false },
+    { flightId: "MC201", itemId: "soba", loaded: 12, reserved: 2, unavailable: false },
+    { flightId: "MC201", itemId: "curry", loaded: 11, reserved: 3, unavailable: false },
+    { flightId: "MC201", itemId: "salmon", loaded: 9, reserved: 1, unavailable: false },
+    { flightId: "SA418", itemId: "lemak", loaded: 8, reserved: 6, unavailable: false },
+    { flightId: "SA418", itemId: "soba", loaded: 7, reserved: 5, unavailable: false },
+    { flightId: "SA418", itemId: "curry", loaded: 6, reserved: 4, unavailable: false },
+    { flightId: "SA418", itemId: "salmon", loaded: 6, reserved: 4, unavailable: false },
+    { flightId: "IH307", itemId: "lemak", loaded: 7, reserved: 3, unavailable: true },
+    { flightId: "IH307", itemId: "soba", loaded: 7, reserved: 2, unavailable: false },
+    { flightId: "IH307", itemId: "curry", loaded: 6, reserved: 2, unavailable: false },
+    { flightId: "IH307", itemId: "salmon", loaded: 5, reserved: 1, unavailable: false },
+    { flightId: "OE105", itemId: "lemak", loaded: 10, reserved: 4, unavailable: false },
+    { flightId: "OE105", itemId: "soba", loaded: 9, reserved: 3, unavailable: false },
+    { flightId: "OE105", itemId: "curry", loaded: 8, reserved: 3, unavailable: false },
+    { flightId: "OE105", itemId: "salmon", loaded: 7, reserved: 2, unavailable: false },
+    { flightId: "SB660", itemId: "lemak", loaded: 12, reserved: 7, unavailable: false },
+    { flightId: "SB660", itemId: "soba", loaded: 10, reserved: 5, unavailable: false },
+    { flightId: "SB660", itemId: "curry", loaded: 10, reserved: 5, unavailable: false },
+    { flightId: "SB660", itemId: "salmon", loaded: 8, reserved: 4, unavailable: false },
   ],
   orders: [
     {
@@ -100,6 +169,7 @@ export const initialDemoState: DemoState = {
   agentActions: [
     {
       id: "action-seed-1",
+      flightId: "MC201",
       type: "observed",
       title: "Inventory synchronized",
       detail: "46 meals loaded across four menu items. Crew count verified at gate D42.",
@@ -107,6 +177,7 @@ export const initialDemoState: DemoState = {
     },
     {
       id: "action-seed-2",
+      flightId: "MC201",
       type: "executed",
       title: "Passenger menu published",
       detail: "Flight-specific ordering page is live for MC201.",
@@ -114,7 +185,9 @@ export const initialDemoState: DemoState = {
     },
   ],
   forecast: null,
+  forecasts: Object.fromEntries(demoFlights.map((flight) => [flight.id, null])),
   discountApproval: "idle",
+  discountApprovals: Object.fromEntries(demoFlights.map((flight) => [flight.id, "idle"])),
 };
 
 export function freshDemoState(): DemoState {
