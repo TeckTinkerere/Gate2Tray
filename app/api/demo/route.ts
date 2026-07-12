@@ -24,6 +24,13 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const origin = request.headers.get("origin");
+  const requestOrigin = new URL(request.url).origin;
+  const fetchSite = request.headers.get("sec-fetch-site");
+  if ((origin && origin !== requestOrigin) || fetchSite === "cross-site") {
+    return NextResponse.json({ error: "Cross-site mutation requests are not allowed." }, { status: 403 });
+  }
+
   try {
     const command = commandSchema.parse(await request.json()) as DemoCommand;
     return NextResponse.json(mutateDemoState(command));

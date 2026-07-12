@@ -1,4 +1,4 @@
-import { issueMockRefund, recommendDiscount } from "@/lib/agent-tools";
+import { findApprovedSubstitutes, issueMockRefund, recommendDiscount } from "@/lib/agent-tools";
 import { freshDemoState } from "@/lib/mock-data";
 import { checkoutSchema } from "@/lib/schemas";
 import type { AgentAction, DemoCommand, DemoState } from "@/lib/types";
@@ -111,8 +111,14 @@ export function executeDemoCommand(current: DemoState, command: DemoCommand): { 
     }
 
     case "mark_order_delivered": {
+      if (current.flight.serviceStatus !== "active") {
+        throw new Error("Cabin service must be active before an order can be delivered.");
+      }
       const order = current.orders.find((entry) => entry.id === command.payload.orderId);
-      if (!order || order.status === "action_required") return { state: current };
+      if (!order) throw new Error("Order not found.");
+      if (!["confirmed", "preparing", "substituted"].includes(order.status)) {
+        throw new Error("This order is not in a deliverable state.");
+      }
       return { state: { ...current, orders: current.orders.map((entry) => entry.id === order.id ? { ...entry, status: "delivered", updatedAt: new Date().toISOString() } : entry), agentActions: [createAction("executed", `Order ${order.id} delivered`, `Crew confirmed delivery to seat ${order.seat}.`), ...current.agentActions] } };
     }
 
@@ -121,6 +127,8 @@ export function executeDemoCommand(current: DemoState, command: DemoCommand): { 
       const order = current.orders.find((entry) => entry.id === orderId);
       const substitute = current.menuItems.find((entry) => entry.id === itemId);
       if (!order || !substitute || order.status !== "action_required") return { state: current };
+      const isApproved = findApprovedSubstitutes(current, order).some((item) => item.id === itemId);
+      if (!isApproved) throw new Error("Substitute does not satisfy dietary and inventory policy.");
       return {
         state: {
           ...current,
@@ -133,7 +141,10 @@ export function executeDemoCommand(current: DemoState, command: DemoCommand): { 
 
     case "refund_order": {
       const order = current.orders.find((entry) => entry.id === command.payload.orderId);
-      if (!order) return { state: current };
+      if (!order) throw new Error("Order not found.");
+      if (order.status !== "action_required") {
+        throw new Error("Refund is only available during passenger resolution.");
+      }
       const refund = issueMockRefund(order);
       return {
         result: refund.reference,

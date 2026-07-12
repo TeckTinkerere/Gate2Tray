@@ -49,7 +49,7 @@ export function findApprovedSubstitutes(state: DemoState, order: Order): MenuIte
 
   return state.menuItems.filter((item) => {
     const inventory = state.inventory.find((row) => row.itemId === item.id);
-    const hasDietaryMatch = original.dietary.some((label) => item.dietary.includes(label));
+    const hasDietaryMatch = original.dietary.every((label) => item.dietary.includes(label));
     return (
       item.id !== original.id &&
       hasDietaryMatch &&
