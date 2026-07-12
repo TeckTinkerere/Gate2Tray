@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getDemoState, mutateDemoState } from "@/lib/sqlite";
+import { isCrossSiteMutation } from "@/lib/request-security";
 import type { DemoCommand } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -24,10 +25,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const origin = request.headers.get("origin");
-  const requestOrigin = new URL(request.url).origin;
-  const fetchSite = request.headers.get("sec-fetch-site");
-  if ((origin && origin !== requestOrigin) || fetchSite === "cross-site") {
+  if (isCrossSiteMutation(request)) {
     return NextResponse.json({ error: "Cross-site mutation requests are not allowed." }, { status: 403 });
   }
 

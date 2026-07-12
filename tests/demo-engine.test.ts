@@ -60,7 +60,6 @@ describe("executeDemoCommand", () => {
   it("rejects delivery for a refunded order", () => {
     const state = freshDemoState();
     const order = state.orders[0];
-    state.flight.serviceStatus = "active";
     state.flights = state.flights.map((flight) =>
       flight.id === order.flightId ? { ...flight, serviceStatus: "active" } : flight,
     );

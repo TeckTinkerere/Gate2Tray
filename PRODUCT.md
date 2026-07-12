@@ -6,11 +6,11 @@ product
 
 ## Users
 
-The primary user is a solo cabin-commerce operator for a small charter airline. They need to understand which flights require attention, approve bounded commercial actions, manage inventory risk and exceptions, and remain accountable for what the operations agent executes. Cabin crew need a glanceable, one- or two-tap fulfillment queue in constrained cabin conditions. Passengers need a focused mobile ordering and exception-resolution flow that reassures them their meal remains reserved.
+The primary user is the founder-operator of an independent one-person Fleet Commerce Operator serving several small charter and regional carrier clients. They need to understand which flights require attention, approve bounded commercial actions, manage inventory risk and exceptions, and remain accountable for what the operations agent executes across client boundaries. Cabin crew need a glanceable, one- or two-tap fulfillment queue in constrained cabin conditions. Passengers need a focused mobile ordering and exception-resolution flow that reassures them their meal remains reserved.
 
 ## Product Purpose
 
-Gate2Tray OS is a reservation-and-fulfillment orchestration layer for inventory already loaded onto a flight. It forecasts demand, recommends policy-bounded discounts, publishes flight-specific ordering, coordinates crew fulfillment, and resolves unavailable meals through passenger-approved substitutions or simulated refunds. The product proves that one operator can set policy and exercise judgment while an agent performs repetitive execution with a visible audit trail.
+Gate2Tray OS is the operating layer for a one-person aviation-commerce company, not an airline or cabin-authority replacement. It orchestrates inventory already loaded onto partner flights, evaluates demand from explicit evidence, recommends policy-bounded discounts, publishes flight-specific ordering after approval, coordinates crew fulfillment, and resolves unavailable meals through passenger-approved substitutions or simulated refunds. The product proves that one operator can supervise a small portfolio while one bounded agent performs repetitive analysis and execution with flight isolation, deliberate no-action, safety stops, and a visible audit trail.
 
 ## Brand Personality
 

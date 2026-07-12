@@ -8,7 +8,8 @@
     "lint": "eslint .",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "qa:responsive": "python -B scripts/qa_responsive.py"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "latest",

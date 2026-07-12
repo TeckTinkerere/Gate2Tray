@@ -1,5 +1,26 @@
 export type DietaryLabel = "Halal" | "Vegetarian" | "Vegan" | "Gluten-aware";
 
+export type FlightScenario =
+  | "moderate_surplus"
+  | "protected_stock"
+  | "supplier_shortfall"
+  | "aircraft_change"
+  | "safety_pause";
+
+export type FlightOperations = {
+  scenario: FlightScenario;
+  scenarioLabel: string;
+  phase: "predeparture" | "boarding" | "in_service" | "completed";
+  manifestComplete: boolean;
+  loadingConfirmed: boolean;
+  stateVersion: number;
+  reservationVelocityPerHour: number;
+  conversionBaseline: number;
+  minutesToOrderingClose: number;
+  dataFreshnessMinutes: number;
+  disruption: "none" | "supplier_shortfall" | "aircraft_change" | "safety_pause";
+};
+
 export type Flight = {
   id: string;
   flightNumber: string;
@@ -11,6 +32,7 @@ export type Flight = {
   passengers: number;
   currentDiscount: number;
   serviceStatus: "not_started" | "active" | "paused" | "complete";
+  operations: FlightOperations;
 };
 
 export type MenuItem = {
@@ -64,26 +86,56 @@ export type AgentAction = {
   timestamp: string;
 };
 
+export type AgentOutcome = "recommendation" | "no_action" | "needs_data" | "exception" | "safety_hold";
+
 export type ForecastResult = {
-  expectedOrders: number;
-  confidence: number;
+  outcome: AgentOutcome;
+  dataSufficiency: "sufficient" | "needs_data";
+  algorithmVersion: "g2t-heuristic-v1";
+  expectedOrders: number | null;
+  expectedOrdersRange: { low: number; high: number } | null;
+  confidence: null;
   projectedSurplusUnits: number;
+  projectedSurplusRange: { low: number; high: number } | null;
   recommendedDiscount: number;
   remainingMargin: number;
   explanation: string;
+  requiredAction: string;
+  featureSnapshot: {
+    passengers: number;
+    loadedUnits: number;
+    reservedUnits: number;
+    protectedUnits: number;
+    reservationVelocityPerHour: number;
+    conversionBaseline: number;
+    minutesToOrderingClose: number;
+    dataFreshnessMinutes: number;
+    stateVersion: number;
+  };
+};
+
+export type AgentRun = {
+  id: string;
+  flightId: string;
+  outcome: AgentOutcome;
+  status: "waiting_for_approval" | "completed";
+  algorithmVersion: ForecastResult["algorithmVersion"];
+  stateVersion: number;
+  toolCalls: Array<"get_flight_context" | "forecast_demand" | "propose_gate_offer">;
+  summary: string;
+  startedAt: string;
+  completedAt: string;
 };
 
 export type DemoState = {
-  flight: Flight;
   flights: Flight[];
   menuItems: MenuItem[];
   inventory: FlightInventory[];
   orders: Order[];
   agentActions: AgentAction[];
-  forecast: ForecastResult | null;
   forecasts: Record<string, ForecastResult | null>;
-  discountApproval: "idle" | "pending" | "approved";
   discountApprovals: Record<string, "idle" | "pending" | "approved">;
+  agentRuns: Record<string, AgentRun | null>;
 };
 
 export type DemoCommand =

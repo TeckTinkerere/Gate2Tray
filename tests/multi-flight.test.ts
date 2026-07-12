@@ -4,6 +4,14 @@ import { freshDemoState } from "@/lib/mock-data";
 import type { DemoCommand } from "@/lib/types";
 
 describe("fleet scenario fixtures", () => {
+  it("has no mutable global-current-flight aliases", () => {
+    const state = freshDemoState();
+
+    expect(state).not.toHaveProperty("flight");
+    expect(state).not.toHaveProperty("forecast");
+    expect(state).not.toHaveProperty("discountApproval");
+  });
+
   it("seeds at least five distinct flights", () => {
     const state = freshDemoState() as unknown as {
       flights?: Array<{ id: string }>;
@@ -31,6 +39,33 @@ describe("fleet scenario fixtures", () => {
       expect(itemIds).toHaveLength(state.menuItems.length);
       expect(new Set(itemIds).size).toBe(state.menuItems.length);
     }
+  });
+
+  it("provides passenger and crew workflow data for every flight", () => {
+    const state = freshDemoState();
+
+    for (const flight of state.flights) {
+      const orders = state.orders.filter((order) => order.flightId === flight.id);
+      expect(orders.length, `${flight.id} should have workflow orders`).toBeGreaterThanOrEqual(2);
+      expect(
+        orders.every((order) =>
+          state.inventory.some(
+            (row) => row.flightId === flight.id && row.itemId === order.itemId,
+          ),
+        ),
+      ).toBe(true);
+    }
+
+    expect(
+      state.orders.filter(
+        (order) => order.flightId === "IH307" && order.status === "action_required",
+      ),
+    ).toHaveLength(3);
+    expect(
+      state.orders.some(
+        (order) => order.flightId === "SB660" && order.status === "preparing",
+      ),
+    ).toBe(true);
   });
 
   it("runs an agent evaluation for only the requested flight", () => {
@@ -111,15 +146,15 @@ describe("fleet scenario fixtures", () => {
     const state = freshDemoState();
     const evaluated = executeDemoCommand(state, {
       type: "run_agent",
-      flightId: "OE105",
+      flightId: "MC201",
     });
     const approved = executeDemoCommand(evaluated.state, {
       type: "approve_discount",
-      flightId: "OE105",
+      flightId: "MC201",
     } as DemoCommand);
 
-    expect(approved.state.flights.find((flight) => flight.id === "OE105")?.currentDiscount).toBe(10);
-    expect(approved.state.flights.find((flight) => flight.id === "MC201")?.currentDiscount).toBe(0);
-    expect(approved.state.discountApprovals?.OE105).toBe("approved");
+    expect(approved.state.flights.find((flight) => flight.id === "MC201")?.currentDiscount).toBe(10);
+    expect(approved.state.flights.find((flight) => flight.id === "OE105")?.currentDiscount).toBe(0);
+    expect(approved.state.discountApprovals?.MC201).toBe("approved");
   });
 });

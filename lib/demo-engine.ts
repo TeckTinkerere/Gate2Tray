@@ -23,7 +23,6 @@ function getFlight(state: DemoState, flightId: string): Flight {
 function updateFlight(state: DemoState, flightId: string, update: Partial<Flight>) {
   const flight = { ...getFlight(state, flightId), ...update };
   return {
-    flight: state.flight.id === flightId ? flight : state.flight,
     flights: state.flights.map((entry) => entry.id === flightId ? flight : entry),
   };
 }
@@ -47,18 +46,42 @@ export function executeDemoCommand(current: DemoState, command: DemoCommand): { 
       return { state: freshDemoState() };
 
     case "run_agent": {
-      getFlight(current, command.flightId);
+      const flight = getFlight(current, command.flightId);
       const forecast = recommendDiscount(current, command.flightId);
+      const requiresApproval = forecast.outcome === "recommendation" && forecast.recommendedDiscount > 0;
+      const approval = requiresApproval ? "pending" : "idle";
+      const timestamp = new Date().toISOString();
+      const headline = {
+        recommendation: "Gate discount ready for approval",
+        no_action: "No price action recommended",
+        needs_data: "Fresh operational evidence required",
+        exception: "Passenger resolution takes priority",
+        safety_hold: "Crew safety hold overrides commerce",
+      }[forecast.outcome];
+      const actionType: AgentAction["type"] = requiresApproval ? "recommended" : forecast.outcome === "no_action" ? "observed" : "exception";
       return {
         state: {
           ...current,
-          forecast: command.flightId === current.flight.id ? forecast : current.forecast,
           forecasts: { ...current.forecasts, [command.flightId]: forecast },
-          discountApproval: command.flightId === current.flight.id ? "pending" : current.discountApproval,
-          discountApprovals: { ...current.discountApprovals, [command.flightId]: "pending" },
+          discountApprovals: { ...current.discountApprovals, [command.flightId]: approval },
+          agentRuns: {
+            ...current.agentRuns,
+            [command.flightId]: {
+              id: `run-${command.flightId}-${flight.operations.stateVersion}-${Date.now()}`,
+              flightId: command.flightId,
+              outcome: forecast.outcome,
+              status: requiresApproval ? "waiting_for_approval" : "completed",
+              algorithmVersion: forecast.algorithmVersion,
+              stateVersion: flight.operations.stateVersion,
+              toolCalls: ["get_flight_context", "forecast_demand", "propose_gate_offer"],
+              summary: forecast.explanation,
+              startedAt: timestamp,
+              completedAt: timestamp,
+            },
+          },
           agentActions: [
-            createAction(command.flightId, "recommended", "Gate discount ready for approval", forecast.explanation),
-            createAction(command.flightId, "observed", "Demand forecast completed", `Expected ${forecast.expectedOrders} meal orders at ${forecast.confidence}% confidence.`),
+            createAction(command.flightId, actionType, headline, forecast.explanation),
+            createAction(command.flightId, "observed", "Deterministic evaluation completed", `${forecast.algorithmVersion} evaluated state version ${flight.operations.stateVersion}. ${forecast.requiredAction}`),
             ...current.agentActions,
           ],
         },
@@ -67,15 +90,21 @@ export function executeDemoCommand(current: DemoState, command: DemoCommand): { 
 
     case "approve_discount": {
       const forecast = current.forecasts[command.flightId];
-      if (!forecast) return { state: current };
+      if (!forecast || forecast.outcome !== "recommendation" || current.discountApprovals[command.flightId] !== "pending") {
+        throw new Error("No pending offer exists for this flight.");
+      }
       const discount = forecast.recommendedDiscount;
       const flightUpdate = updateFlight(current, command.flightId, { currentDiscount: discount });
+      const agentRun = current.agentRuns[command.flightId];
       return {
         state: {
           ...current,
           ...flightUpdate,
-          discountApproval: command.flightId === current.flight.id ? "approved" : current.discountApproval,
           discountApprovals: { ...current.discountApprovals, [command.flightId]: "approved" },
+          agentRuns: agentRun ? {
+            ...current.agentRuns,
+            [command.flightId]: { ...agentRun, status: "completed", summary: `${discount}% offer approved and published.` },
+          } : current.agentRuns,
           agentActions: [
             createAction(command.flightId, "executed", `${discount}% passenger discount published`, `Updated the ${command.flightId} ordering page and preserved the final two units of every meal.`),
             createAction(command.flightId, "approved", "Discount approved by operator", "Bounded recommendation approved within the 15% automatic-discount policy."),

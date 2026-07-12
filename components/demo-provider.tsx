@@ -7,6 +7,10 @@ import type { DemoCommand, DemoState, ServiceWindow } from "@/lib/types";
 type DemoContextValue = {
   state: DemoState;
   hydrated: boolean;
+  connectionStatus: "connecting" | "live" | "reconnecting" | "offline";
+  lastUpdatedAt: string | null;
+  mutating: boolean;
+  mutationError: string;
   runAgent: (flightId: string) => Promise<void>;
   approveDiscount: (flightId: string) => Promise<void>;
   placeOrder: (flightId: string, input: { itemId: string; seat: string; serviceWindow: ServiceWindow }) => Promise<string>;
@@ -24,15 +28,25 @@ const DemoContext = createContext<DemoContextValue | null>(null);
 export function DemoProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<DemoState>(() => freshDemoState());
   const [hydrated, setHydrated] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<DemoContextValue["connectionStatus"]>("connecting");
+  const [lastUpdatedAt, setLastUpdatedAt] = useState<string | null>(null);
+  const [mutating, setMutating] = useState(false);
+  const [mutationError, setMutationError] = useState("");
   const mutationVersion = useRef(0);
 
   const refresh = useCallback(async () => {
     const versionAtStart = mutationVersion.current;
-    const response = await fetch("/api/demo", { cache: "no-store" });
-    if (!response.ok) throw new Error("Unable to load live demo state.");
-    const data = await response.json() as { state: DemoState };
-    if (versionAtStart === mutationVersion.current) setState(data.state);
-    setHydrated(true);
+    try {
+      const response = await fetch("/api/demo", { cache: "no-store" });
+      if (!response.ok) throw new Error("Unable to load live demo state.");
+      const data = await response.json() as { state: DemoState };
+      if (versionAtStart === mutationVersion.current) setState(data.state);
+      setHydrated(true);
+      setConnectionStatus("live");
+      setLastUpdatedAt(new Date().toISOString());
+    } catch {
+      setConnectionStatus((current) => current === "connecting" ? "offline" : "reconnecting");
+    }
   }, []);
 
   useEffect(() => {
@@ -51,15 +65,28 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
 
   const send = useCallback(async (command: DemoCommand) => {
     mutationVersion.current += 1;
-    const response = await fetch("/api/demo", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(command),
-    });
-    const data = await response.json() as { state?: DemoState; result?: string; error?: string };
-    if (!response.ok || !data.state) throw new Error(data.error ?? "Unable to update the demo.");
-    setState(data.state);
-    return data.result;
+    setMutating(true);
+    setMutationError("");
+    try {
+      const response = await fetch("/api/demo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(command),
+      });
+      const data = await response.json() as { state?: DemoState; result?: string; error?: string };
+      if (!response.ok || !data.state) throw new Error(data.error ?? "Unable to update the demo.");
+      setState(data.state);
+      setConnectionStatus("live");
+      setLastUpdatedAt(new Date().toISOString());
+      return data.result;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to update the demo.";
+      setMutationError(message);
+      setConnectionStatus("reconnecting");
+      throw error;
+    } finally {
+      setMutating(false);
+    }
   }, []);
 
   const runAgent = useCallback(async (flightId: string) => { await send({ type: "run_agent", flightId }); }, [send]);
@@ -81,7 +108,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
   }, [send]);
   const resetDemo = useCallback(async () => { await send({ type: "reset_demo" }); }, [send]);
 
-  const value = useMemo(() => ({ state, hydrated, runAgent, approveDiscount, placeOrder, startService, pauseService, markItemUnavailable, markOrderDelivered, chooseSubstitute, refundOrder, resetDemo }), [state, hydrated, runAgent, approveDiscount, placeOrder, startService, pauseService, markItemUnavailable, markOrderDelivered, chooseSubstitute, refundOrder, resetDemo]);
+  const value = useMemo(() => ({ state, hydrated, connectionStatus, lastUpdatedAt, mutating, mutationError, runAgent, approveDiscount, placeOrder, startService, pauseService, markItemUnavailable, markOrderDelivered, chooseSubstitute, refundOrder, resetDemo }), [state, hydrated, connectionStatus, lastUpdatedAt, mutating, mutationError, runAgent, approveDiscount, placeOrder, startService, pauseService, markItemUnavailable, markOrderDelivered, chooseSubstitute, refundOrder, resetDemo]);
 
   return <DemoContext.Provider value={value}>{children}</DemoContext.Provider>;
 }

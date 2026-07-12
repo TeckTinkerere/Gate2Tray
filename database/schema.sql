@@ -11,8 +11,10 @@ CREATE TABLE IF NOT EXISTS flights (
   passengers INTEGER NOT NULL,
   current_discount REAL NOT NULL DEFAULT 0,
   service_status TEXT NOT NULL,
+  operations_json TEXT NOT NULL,
   forecast_json TEXT,
-  discount_approval TEXT NOT NULL DEFAULT 'idle'
+  discount_approval TEXT NOT NULL DEFAULT 'idle',
+  agent_run_json TEXT
 );
 
 CREATE TABLE IF NOT EXISTS menu_items (
@@ -50,6 +52,7 @@ CREATE TABLE IF NOT EXISTS orders (
 
 CREATE TABLE IF NOT EXISTS agent_actions (
   id TEXT PRIMARY KEY,
+  flight_id TEXT NOT NULL,
   type TEXT NOT NULL,
   title TEXT NOT NULL,
   detail TEXT NOT NULL,
