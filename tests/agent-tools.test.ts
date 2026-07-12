@@ -18,4 +18,11 @@ describe("findApprovedSubstitutes", () => {
       ),
     ).toBe(true);
   });
+
+  it("keeps at least one policy-safe substitute in the seeded passenger workflow", () => {
+    const state = freshDemoState();
+    const substitutes = findApprovedSubstitutes(state, state.orders[0]);
+
+    expect(substitutes.length).toBeGreaterThan(0);
+  });
 });

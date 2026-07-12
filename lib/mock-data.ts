@@ -40,7 +40,7 @@ export const initialDemoState: DemoState = {
       description: "Mushroom rendang, turmeric rice and pickled vegetables.",
       price: 13,
       cost: 6.4,
-      dietary: ["Vegan", "Halal"],
+      dietary: ["Vegan", "Halal", "Gluten-aware"],
       symbol: "RC",
     },
     {
