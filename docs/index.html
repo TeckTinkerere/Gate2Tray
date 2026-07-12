@@ -1,0 +1,585 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Gate2Tray OS — Fleet Commerce Operator</title>
+  <meta name="description" content="Gate2Tray OS is the control plane for a one-person Fleet Commerce Operator: one bounded agent supervises onboard meal commerce across a charter fleet with policy checks, human approvals, and a visible audit trail." />
+  <meta property="og:title" content="Gate2Tray OS — Fleet Commerce Operator" />
+  <meta property="og:description" content="One operator supervises onboard commerce across a charter fleet, while one bounded agent evaluates evidence, stops when data is insufficient, and waits for the right human before any consequential action." />
+  <meta property="og:type" content="website" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --background: oklch(1 0 0);
+      --surface: oklch(0.968 0.006 330);
+      --surface-elevated: oklch(0.985 0.003 330);
+      --ink: oklch(0.205 0.025 330);
+      --muted: oklch(0.46 0.018 330);
+      --primary: oklch(0.56 0.16 330);
+      --primary-strong: oklch(0.45 0.14 330);
+      --primary-soft: oklch(0.94 0.035 330);
+      --success: oklch(0.50 0.105 175);
+      --success-strong: oklch(0.36 0.08 175);
+      --success-soft: oklch(0.93 0.035 175);
+      --warning: oklch(0.66 0.14 78);
+      --warning-soft: oklch(0.94 0.045 82);
+      --danger: oklch(0.54 0.18 25);
+      --danger-soft: oklch(0.94 0.04 25);
+      --border: oklch(0.89 0.008 330);
+      --radius: 14px;
+      --radius-sm: 10px;
+      --shadow: 0 1px 2px oklch(0.205 0.025 330 / 0.06), 0 8px 24px oklch(0.205 0.025 330 / 0.05);
+      --maxw: 1120px;
+      --font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --background: oklch(0.19 0.02 330);
+        --surface: oklch(0.235 0.022 330);
+        --surface-elevated: oklch(0.27 0.024 330);
+        --ink: oklch(0.96 0.008 330);
+        --muted: oklch(0.72 0.02 330);
+        --primary: oklch(0.72 0.15 330);
+        --primary-strong: oklch(0.8 0.13 330);
+        --primary-soft: oklch(0.33 0.06 330);
+        --success: oklch(0.7 0.11 175);
+        --success-strong: oklch(0.8 0.1 175);
+        --success-soft: oklch(0.32 0.05 175);
+        --warning: oklch(0.78 0.13 78);
+        --warning-soft: oklch(0.34 0.06 78);
+        --danger: oklch(0.7 0.16 25);
+        --danger-soft: oklch(0.34 0.08 25);
+        --border: oklch(0.36 0.02 330);
+        --shadow: 0 1px 2px oklch(0 0 0 / 0.3), 0 10px 30px oklch(0 0 0 / 0.35);
+      }
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: var(--font);
+      color: var(--ink);
+      background: var(--background);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      font-feature-settings: "cv02", "cv03", "cv04", "tnum";
+    }
+    a { color: inherit; }
+    h1, h2, h3 { line-height: 1.15; letter-spacing: -0.02em; margin: 0; font-weight: 600; }
+    p { margin: 0; }
+    .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 24px; }
+    .tnum { font-variant-numeric: tabular-nums; }
+
+    /* Nav */
+    header.nav {
+      position: sticky; top: 0; z-index: 50;
+      backdrop-filter: saturate(180%) blur(12px);
+      background: color-mix(in oklab, var(--background) 82%, transparent);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-inner { display: flex; align-items: center; justify-content: space-between; height: 64px; gap: 16px; }
+    .brand { display: flex; align-items: center; gap: 12px; font-weight: 600; letter-spacing: -0.01em; }
+    .mark {
+      width: 34px; height: 34px; border-radius: 10px; flex: none;
+      background: linear-gradient(145deg, var(--primary), var(--primary-strong));
+      display: grid; place-items: center; color: #fff; box-shadow: var(--shadow);
+    }
+    .mark svg { width: 19px; height: 19px; }
+    .nav-links { display: flex; gap: 4px; align-items: center; }
+    .nav-links a { padding: 8px 12px; border-radius: 8px; text-decoration: none; color: var(--muted); font-size: 14px; font-weight: 500; }
+    .nav-links a:hover { color: var(--ink); background: var(--surface); }
+    .nav-links a.cta { color: #fff; background: var(--primary); }
+    .nav-links a.cta:hover { background: var(--primary-strong); }
+    @media (max-width: 760px) { .nav-links a.hideable { display: none; } }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px; text-decoration: none;
+      padding: 11px 18px; border-radius: 999px; font-weight: 600; font-size: 15px;
+      border: 1px solid transparent; cursor: pointer; transition: transform .12s ease, background .12s ease;
+    }
+    .btn:active { transform: translateY(1px); }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-strong); }
+    .btn-ghost { background: var(--surface); color: var(--ink); border-color: var(--border); }
+    .btn-ghost:hover { background: var(--surface-elevated); }
+
+    /* Hero */
+    .hero { padding: 88px 0 64px; position: relative; overflow: hidden; }
+    .hero::before {
+      content: ""; position: absolute; inset: -40% 0 auto 0; height: 620px; z-index: 0;
+      background: radial-gradient(60% 60% at 50% 0%, var(--primary-soft), transparent 70%);
+      opacity: .8; pointer-events: none;
+    }
+    .hero .wrap { position: relative; z-index: 1; }
+    .eyebrow {
+      display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600;
+      color: var(--primary-strong); background: var(--primary-soft);
+      padding: 6px 12px; border-radius: 999px; margin-bottom: 22px;
+    }
+    .hero h1 { font-size: clamp(34px, 6vw, 60px); font-weight: 700; max-width: 15ch; }
+    .hero .lede { font-size: clamp(17px, 2.2vw, 21px); color: var(--muted); max-width: 62ch; margin-top: 22px; }
+    .hero .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 32px; }
+    .hero .note { margin-top: 18px; font-size: 13.5px; color: var(--muted); }
+
+    /* Stat strip */
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 56px; }
+    .stat { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+    .stat .n { font-size: 28px; font-weight: 700; letter-spacing: -0.02em; }
+    .stat .l { font-size: 13px; color: var(--muted); margin-top: 4px; }
+    @media (max-width: 760px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+
+    /* Sections */
+    section { padding: 72px 0; }
+    section.alt { background: var(--surface); border-block: 1px solid var(--border); }
+    .kicker { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--primary); }
+    .section-head { max-width: 66ch; margin-bottom: 40px; }
+    .section-head h2 { font-size: clamp(26px, 4vw, 38px); margin-top: 12px; }
+    .section-head p { color: var(--muted); font-size: 17px; margin-top: 14px; }
+
+    /* Sequence */
+    .sequence { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+    .step { background: var(--background); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 18px; position: relative; }
+    .step .idx { font-size: 12px; font-weight: 700; color: var(--primary); }
+    .step h3 { font-size: 16px; margin: 8px 0 6px; }
+    .step p { font-size: 13.5px; color: var(--muted); }
+    @media (max-width: 900px) { .sequence { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 480px) { .sequence { grid-template-columns: 1fr; } }
+
+    /* Card grid */
+    .grid { display: grid; gap: 20px; }
+    .grid-2 { grid-template-columns: repeat(2, 1fr); }
+    .grid-3 { grid-template-columns: repeat(3, 1fr); }
+    .grid-4 { grid-template-columns: repeat(4, 1fr); }
+    @media (max-width: 900px) { .grid-3, .grid-4 { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 620px) { .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; } }
+
+    .card { background: var(--background); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow); }
+    section.alt .card { background: var(--surface-elevated); }
+    .card .ico { width: 40px; height: 40px; border-radius: 11px; display: grid; place-items: center; background: var(--primary-soft); color: var(--primary-strong); margin-bottom: 16px; }
+    .card .ico svg { width: 21px; height: 21px; }
+    .card h3 { font-size: 18px; margin-bottom: 8px; }
+    .card p { color: var(--muted); font-size: 14.5px; }
+    .card .tag { display: inline-block; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.06em; }
+
+    /* Table */
+    .table-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); background: var(--background); }
+    table { width: 100%; border-collapse: collapse; min-width: 720px; }
+    th, td { text-align: left; padding: 15px 18px; font-size: 14.5px; vertical-align: top; }
+    thead th { background: var(--surface); color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; border-bottom: 1px solid var(--border); }
+    tbody tr + tr td { border-top: 1px solid var(--border); }
+    td .flight { font-weight: 700; letter-spacing: -0.01em; }
+    td .route { color: var(--muted); font-size: 13px; }
+
+    .badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+    .b-primary { background: var(--primary-soft); color: var(--primary-strong); }
+    .b-success { background: var(--success-soft); color: var(--success-strong); }
+    .b-warning { background: var(--warning-soft); color: oklch(0.42 0.09 70); }
+    .b-danger { background: var(--danger-soft); color: oklch(0.44 0.16 25); }
+    @media (prefers-color-scheme: dark) {
+      .b-warning { color: var(--warning); }
+      .b-danger { color: var(--danger); }
+      .b-success { color: var(--success-strong); }
+      .b-primary { color: var(--primary-strong); }
+    }
+
+    /* Gate list */
+    .gates { display: grid; gap: 10px; }
+    .gate-row { display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: center; padding: 14px 18px; background: var(--background); border: 1px solid var(--border); border-radius: var(--radius-sm); }
+    section.alt .gate-row { background: var(--surface-elevated); }
+    .gate-row .act { font-weight: 500; font-size: 14.5px; }
+
+    /* Architecture */
+    .arch { background: var(--ink); color: oklch(0.96 0.008 330); border-radius: var(--radius); padding: 28px; overflow-x: auto; box-shadow: var(--shadow); }
+    .arch pre { margin: 0; font-family: "SF Mono", ui-monospace, "Cascadia Code", Menlo, Consolas, monospace; font-size: 13px; line-height: 1.75; color: oklch(0.9 0.02 330); }
+    .arch .hl { color: var(--primary); font-weight: 600; }
+    .arch .hl2 { color: var(--success); font-weight: 600; }
+
+    /* Code block */
+    .code { background: var(--ink); color: oklch(0.94 0.01 330); border-radius: var(--radius); padding: 22px 24px; overflow-x: auto; box-shadow: var(--shadow); }
+    .code pre { margin: 0; font-family: "SF Mono", ui-monospace, "Cascadia Code", Menlo, Consolas, monospace; font-size: 13.5px; line-height: 1.85; }
+    .code .c { color: oklch(0.66 0.03 330); }
+    .code .p { color: var(--primary); }
+
+    /* List */
+    ul.clean { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
+    ul.clean li { display: grid; grid-template-columns: 22px 1fr; gap: 12px; font-size: 15px; color: var(--muted); }
+    ul.clean li .ck { color: var(--success); flex: none; margin-top: 3px; }
+    ul.clean li b { color: var(--ink); font-weight: 600; }
+
+    .stack { display: flex; flex-wrap: wrap; gap: 10px; }
+    .pill { font-size: 13.5px; font-weight: 500; padding: 8px 14px; border-radius: 999px; background: var(--background); border: 1px solid var(--border); }
+    section.alt .pill { background: var(--surface-elevated); }
+
+    /* Callout */
+    .callout { border: 1px solid var(--border); border-left: 4px solid var(--warning); background: var(--warning-soft); border-radius: var(--radius-sm); padding: 20px 22px; }
+    .callout h3 { font-size: 16px; margin-bottom: 6px; color: oklch(0.4 0.09 70); }
+    .callout p { font-size: 14.5px; color: var(--ink); }
+    @media (prefers-color-scheme: dark) { .callout h3 { color: var(--warning); } }
+
+    /* Footer */
+    footer { padding: 56px 0 40px; border-top: 1px solid var(--border); background: var(--surface); }
+    .foot-grid { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
+    footer .disc { max-width: 60ch; color: var(--muted); font-size: 13px; margin-top: 20px; }
+    footer a { color: var(--primary-strong); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+
+  <header class="nav">
+    <div class="wrap nav-inner">
+      <div class="brand">
+        <span class="mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h20M12 2v20M7 7l10 10M17 7L7 17"/></svg>
+        </span>
+        <span>Gate2Tray&nbsp;OS</span>
+      </div>
+      <nav class="nav-links">
+        <a class="hideable" href="#what">Overview</a>
+        <a class="hideable" href="#agent">The agent</a>
+        <a class="hideable" href="#fleet">Scenarios</a>
+        <a class="hideable" href="#run">Run it</a>
+        <a class="cta" href="https://github.com/TeckTinkerere/Gate2Tray" target="_blank" rel="noopener">GitHub&nbsp;↗</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="wrap">
+      <span class="eyebrow">◇ One-person Fleet Commerce Operator · demo build</span>
+      <h1>The control plane for onboard commerce across a charter fleet.</h1>
+      <p class="lede">
+        Gate2Tray OS lets a single founder-operator supervise meal commerce across several carrier clients —
+        while one bounded <b>CommerceOpsAgent</b> evaluates evidence, stops when the data or safety picture is
+        insufficient, and waits for the right human before any consequential action.
+      </p>
+      <div class="actions">
+        <a class="btn btn-primary" href="https://github.com/TeckTinkerere/Gate2Tray" target="_blank" rel="noopener">View the repository</a>
+        <a class="btn btn-ghost" href="#run">Run the demo locally</a>
+      </div>
+      <p class="note">Every carrier, flight, passenger, order, payment, and signal in the demo is synthetic. No real payments, no production identity.</p>
+
+      <div class="stats">
+        <div class="stat"><div class="n tnum">5</div><div class="l">Distinct flight scenarios, isolated per flight</div></div>
+        <div class="stat"><div class="n tnum">4</div><div class="l">Responsive surfaces: operator, crew, passenger, tracker</div></div>
+        <div class="stat"><div class="n tnum">1</div><div class="l">Bounded, deterministic agent — no swarm</div></div>
+        <div class="stat"><div class="n tnum">100%</div><div class="l">Consequential actions policy-checked & audited</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- WHAT IT IS -->
+  <section id="what">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="kicker">What it is</span>
+        <h2>An operating layer for a one-person aviation-commerce company.</h2>
+        <p>
+          Gate2Tray is not an airline, caterer, or payment processor. The airline stays the operator of record and
+          the merchant; licensed caterers stay responsible for food and loading; cabin crew keep final authority over
+          service and safety. Gate2Tray orchestrates inventory <em>already loaded</em> onto partner flights — pricing
+          opportunities, passenger ordering, crew fulfillment, exceptions, refunds, and reconciliation — so one operator
+          can run a portfolio that would otherwise need a whole retail-operations team.
+        </p>
+      </div>
+
+      <div class="grid grid-3">
+        <div class="card">
+          <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m7 14 3-3 3 3 5-5"/></svg></div>
+          <h3>Recover margin, safely</h3>
+          <p>Recommend policy-bounded gate offers on likely-surplus meals — never discounting into protected stock or below the minimum contribution margin.</p>
+        </div>
+        <div class="card">
+          <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg></div>
+          <h3>Many flights, one queue</h3>
+          <p>Turn several simultaneous flights into a single prioritized attention queue: pending approvals, inventory risk, active exceptions, and the agent trail — in that order.</p>
+        </div>
+        <div class="card">
+          <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></div>
+          <h3>Exceptions with consent</h3>
+          <p>Resolve stockouts through verified, fully dietary-compatible substitutes the passenger explicitly chooses — otherwise a visible, idempotent refund path.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SEQUENCE -->
+  <section class="alt">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="kicker">The operating sequence</span>
+        <h2>Observe. Recommend. Approve. Execute. Log.</h2>
+        <p>The whole product is legible as one repeating loop. Nothing consequential happens without evidence behind it and a human accountable for it.</p>
+      </div>
+      <div class="sequence">
+        <div class="step"><div class="idx">01</div><h3>Observe</h3><p>Read a versioned flight snapshot: manifest, menu, inventory, orders, exceptions, freshness.</p></div>
+        <div class="step"><div class="idx">02</div><h3>Recommend</h3><p>Deterministic demand evaluation and a policy-checked offer — or an honest no-action / needs-data result.</p></div>
+        <div class="step"><div class="idx">03</div><h3>Approve</h3><p>Consequential actions suspend for the right human: operator, crew, or an explicit passenger choice.</p></div>
+        <div class="step"><div class="idx">04</div><h3>Execute</h3><p>Run once against an expected state version with an idempotency key. Stale state is rejected.</p></div>
+        <div class="step"><div class="idx">05</div><h3>Log</h3><p>Append immutable events linking evidence, policy, approval, tool call, and outcome.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SURFACES -->
+  <section id="surfaces">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="kicker">Four surfaces, one database</span>
+        <h2>Each screen optimized for its context.</h2>
+        <p>Accountable control for the operator, arm's-length glanceability for crew, and reassurance for passengers — all responsive from 320px to 1440px and connected through one local SQLite state.</p>
+      </div>
+      <div class="grid grid-4">
+        <div class="card">
+          <span class="tag">/operator</span>
+          <h3>Command center</h3>
+          <p>A fleet attention queue, then a per-flight workspace: evidence → recommendation → policy → approval → outcome → linked audit. Policy edits are versioned, never hidden constants.</p>
+        </div>
+        <div class="card">
+          <span class="tag">/crew/[flight]</span>
+          <h3>Cabin surface</h3>
+          <p>Only the selected flight: service controls, section queues, inventory, exceptions. Start or pause service, mark an item unavailable, confirm delivery — in one or two taps.</p>
+        </div>
+        <div class="card">
+          <span class="tag">/order/[flight]</span>
+          <h3>Passenger ordering</h3>
+          <p>A flight-specific menu, simulated checkout, reservation status, and a tracking link — focused, mobile-first, and reassuring.</p>
+        </div>
+        <div class="card">
+          <span class="tag">/track/[orderId]</span>
+          <h3>Resolution tracker</h3>
+          <p>Live order status with explicit compatible substitute choices and an always-visible refund fallback, holding stable through terminal states.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- THE AGENT -->
+  <section class="alt" id="agent">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="kicker">The bounded agent</span>
+        <h2>One CommerceOpsAgent — not a theatrical swarm.</h2>
+        <p>
+          Authoritative arithmetic, policy checks, state transitions, payments, inventory, and safety rules stay
+          deterministic. An optional LLM may later choose among safe read/propose tools and explain a recommendation —
+          but it can never calculate authoritative prices, issue arbitrary writes, touch SQL, pick a passenger's meal,
+          or bypass a human gate.
+        </p>
+      </div>
+
+      <div class="grid grid-2" style="align-items:start">
+        <div class="card">
+          <h3 style="margin-bottom:16px">Human &amp; safety gates</h3>
+          <div class="gates">
+            <div class="gate-row"><span class="act">Observe, evaluate, draft recommendation, log</span><span class="badge b-success">Automatic</span></div>
+            <div class="gate-row"><span class="act">Publish any price change</span><span class="badge b-primary">Operator approval</span></div>
+            <div class="gate-row"><span class="act">Substitute a meal</span><span class="badge b-primary">Passenger choice</span></div>
+            <div class="gate-row"><span class="act">Refund at or above threshold</span><span class="badge b-primary">Passenger + operator</span></div>
+            <div class="gate-row"><span class="act">Mark unavailable · pause · confirm delivery</span><span class="badge b-warning">Crew action</span></div>
+            <div class="gate-row"><span class="act">Resume after a safety pause</span><span class="badge b-warning">Crew only</span></div>
+            <div class="gate-row"><span class="act">Change policy</span><span class="badge b-primary">New immutable version</span></div>
+          </div>
+        </div>
+        <div class="card">
+          <h3 style="margin-bottom:16px">What the agent guarantees</h3>
+          <ul class="clean">
+            <li><span class="ck">✓</span><span>Recommendation values <b>change when the structured inputs change</b> — no fabricated precision.</span></li>
+            <li><span class="ck">✓</span><span>Insufficient evidence returns an honest <b>needs-data</b> state instead of a guess.</span></li>
+            <li><span class="ck">✓</span><span>An approval signs the <b>exact action digest</b>, expires, and is superseded if state or policy moves.</span></li>
+            <li><span class="ck">✓</span><span>Approved writes execute <b>exactly once</b>; retries can't oversell or duplicate a refund.</span></li>
+            <li><span class="ck">✓</span><span>Every query and command carries a <b>flightId</b> — a command for flight A can't touch flight B.</span></li>
+            <li><span class="ck">✓</span><span>Typed, actionable errors: <b>STALE_VERSION, POLICY_DENIED, APPROVAL_REQUIRED, INVENTORY_CONFLICT…</b></span></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FLEET SCENARIOS -->
+  <section id="fleet">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="kicker">Synthetic scenario fleet</span>
+        <h2>Five flights that behave differently — because their inputs differ.</h2>
+        <p>Switch between flights to see deliberately different agent outcomes and scoped audit trails. Each scenario is selectable and resettable without affecting the others.</p>
+      </div>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr><th>Flight</th><th>Real-world stress case</th><th>Expected bounded outcome</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><div class="flight">MC201</div><div class="route">Merlion Charter · SIN → Langkawi</div></td>
+              <td>Moderate pre-departure surplus</td>
+              <td><span class="badge b-primary">Propose</span> &nbsp;A 10% gate offer, held for operator approval.</td>
+            </tr>
+            <tr>
+              <td><div class="flight">SA418</div><div class="route">Straits Air · SIN → Bali</div></td>
+              <td>Near sell-out at protected stock</td>
+              <td><span class="badge b-success">No action</span> &nbsp;Explain why stock protection has priority.</td>
+            </tr>
+            <tr>
+              <td><div class="flight">IH307</div><div class="route">Island Hopper · Seletar → Tioman</div></td>
+              <td>Supplier shortfall with hard dietary constraints</td>
+              <td><span class="badge b-danger">Resolve</span> &nbsp;Freeze SKU; offer only fully compatible substitutes, else refund.</td>
+            </tr>
+            <tr>
+              <td><div class="flight">OE105</div><div class="route">Orchard Executive · SIN → Penang</div></td>
+              <td>Aircraft change with stale manifest / loading</td>
+              <td><span class="badge b-warning">Needs data</span> &nbsp;Mark prior recommendation stale; publish nothing.</td>
+            </tr>
+            <tr>
+              <td><div class="flight">SB660</div><div class="route">Seabreeze Aviation · SIN → Phuket</div></td>
+              <td>Safety pause during cabin service</td>
+              <td><span class="badge b-warning">Hold</span> &nbsp;Protect reservations; reconcile idempotently on resume.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ARCHITECTURE -->
+  <section class="alt" id="architecture">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="kicker">System architecture</span>
+        <h2>Role-scoped commands through a policy kernel.</h2>
+        <p>The agent control plane owns no commerce records. It writes only through domain services, behind approval and consent gates, into SQLite state and an append-only event log.</p>
+      </div>
+      <div class="grid grid-2" style="align-items:start">
+        <div class="arch">
+<pre>   Operator / Crew / Passenger / Tracker UI
+                    |
+             <span class="hl">role-scoped commands</span>
+                    |
+  Flight | Inventory | Commerce | Fulfillment
+                    |
+       <span class="hl">Policy kernel</span> + approval/consent gates
+              |                 |
+         SQLite state    <span class="hl2">append-only events</span>
+              ^                 |
+              +---- agent executor ----+
+                         |
+                <span class="hl">CommerceOpsAgent</span></pre>
+        </div>
+        <div>
+          <ul class="clean">
+            <li><span class="ck">▸</span><span><b>Flight Operations</b> — lifecycle, manifest snapshot, gate, aircraft-change and service state.</span></li>
+            <li><span class="ck">▸</span><span><b>Inventory</b> — loaded, reserved, unavailable, and protected units, with optimistic concurrency.</span></li>
+            <li><span class="ck">▸</span><span><b>Commerce</b> — flight menu, price snapshots, orders, simulated payments and refunds.</span></li>
+            <li><span class="ck">▸</span><span><b>Fulfillment</b> — cabin queues, delivery, unavailable-item exceptions, passenger choices.</span></li>
+            <li><span class="ck">▸</span><span><b>Policy &amp; Approval</b> — immutable policy versions, deterministic decisions, expiring approvals, action digests.</span></li>
+            <li><span class="ck">▸</span><span><b>Agent control plane</b> — runs, tool calls, forecasts, recommendations, and audit links.</span></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TECH + RUN -->
+  <section id="run">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="kicker">Under the hood</span>
+        <h2>Deterministic core, demonstrable offline.</h2>
+        <p>The whole app runs on mock data with simulated payments and deterministic agent logic — no external AI or network required to demo it end-to-end.</p>
+      </div>
+
+      <div class="stack" style="margin-bottom:40px">
+        <span class="pill">Next.js App Router</span>
+        <span class="pill">TypeScript</span>
+        <span class="pill">Tailwind CSS</span>
+        <span class="pill">shadcn/ui · Radix</span>
+        <span class="pill">better-sqlite3</span>
+        <span class="pill">Zod validation</span>
+        <span class="pill">Vitest</span>
+        <span class="pill">Playwright responsive QA</span>
+        <span class="pill">OKLCH design tokens</span>
+      </div>
+
+      <div class="grid grid-2" style="align-items:start">
+        <div>
+          <h3 style="font-size:18px;margin-bottom:14px">Run it locally</h3>
+          <div class="code">
+<pre><span class="c"># clone and install</span>
+git clone https://github.com/TeckTinkerere/Gate2Tray.git
+cd Gate2Tray
+npm install
+
+<span class="c"># quality gates</span>
+npm run lint
+npm test
+npm run typecheck
+npm run build
+
+<span class="c"># start the demo</span>
+npm run dev
+<span class="c"># → open http://localhost:3000/</span><span class="p">operator</span></pre>
+          </div>
+          <p style="font-size:13.5px;color:var(--muted);margin-top:14px">
+            To scan the QR from a phone, run <code>npm run dev -- --hostname 0.0.0.0</code> and open the operator page
+            via your computer's LAN address.
+          </p>
+        </div>
+
+        <div>
+          <h3 style="font-size:18px;margin-bottom:14px">Try the walkthrough</h3>
+          <ul class="clean">
+            <li><span class="ck">1</span><span>Run the operations agent on <b>/operator</b>.</span></li>
+            <li><span class="ck">2</span><span>Approve the recommended gate discount and scan the flight QR.</span></li>
+            <li><span class="ck">3</span><span>Place a meal order on <b>/order/MC201</b>.</span></li>
+            <li><span class="ck">4</span><span>Start service on <b>/crew/MC201</b>, mark a meal unavailable, open the passenger choice.</span></li>
+            <li><span class="ck">5</span><span>Approve a substitute or complete the simulated refund on <b>/track/[orderId]</b>.</span></li>
+            <li><span class="ck">6</span><span>Switch across the five flights to see different bounded outcomes and scoped audit trails.</span></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="callout" style="margin-top:40px">
+        <h3>⚠︎ This is a demo, and it says so honestly</h3>
+        <p>
+          No identity authentication, no role authorization at the network edge, and no real payments. Commercial
+          targets and conversion inputs are labelled hypotheses or scenario fixtures — not validated results. Run it
+          only with mock data on a trusted local network; it is not a production airline or payment system.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="wrap">
+      <div class="foot-grid">
+        <div class="brand">
+          <span class="mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h20M12 2v20M7 7l10 10M17 7L7 17"/></svg>
+          </span>
+          <span>Gate2Tray&nbsp;OS</span>
+        </div>
+        <nav class="nav-links" style="flex-wrap:wrap">
+          <a href="https://github.com/TeckTinkerere/Gate2Tray" target="_blank" rel="noopener">Repository</a>
+          <a href="https://github.com/TeckTinkerere/Gate2Tray/blob/main/README.md" target="_blank" rel="noopener">README</a>
+          <a href="https://github.com/TeckTinkerere/Gate2Tray/blob/main/PRODUCT.md" target="_blank" rel="noopener">Product / PRD</a>
+          <a href="https://github.com/TeckTinkerere/Gate2Tray/blob/main/DESIGN.md" target="_blank" rel="noopener">Design system</a>
+        </nav>
+      </div>
+      <p class="disc">
+        Gate2Tray OS is a demonstration build. All carriers, flights, passengers, orders, payments, and operational
+        signals are synthetic. It is not an airline, caterer, or payment processor, and makes no claim to be
+        allergen-safe or flight-certified. Exact aviation, food-seller, and data-controller roles require validation in
+        carrier contracts and with qualified counsel.
+      </p>
+    </div>
+  </footer>
+
+</body>
+</html>
