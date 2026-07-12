@@ -14,7 +14,13 @@ export function OperatorDashboard() {
   const { state, hydrated, runAgent, approveDiscount } = useDemo();
   const [orderUrl, setOrderUrl] = useState("http://localhost:3000/order/MC201");
 
-  useEffect(() => setOrderUrl(`${window.location.origin}/order/${state.flight.id}`), [state.flight.id]);
+  useEffect(() => {
+    const updateUrl = window.setTimeout(
+      () => setOrderUrl(`${window.location.origin}/order/${state.flight.id}`),
+      0,
+    );
+    return () => window.clearTimeout(updateUrl);
+  }, [state.flight.id]);
 
   const totals = useMemo(() => state.inventory.reduce((summary, row) => ({
     loaded: summary.loaded + row.loaded,
