@@ -1,0 +1,12 @@
+node_modules
+.next
+out
+.env*
+!.env.example
+npm-debug.log*
+dev.*.log
+.DS_Store
+*.tsbuildinfo
+data/*.db
+data/*.db-shm
+data/*.db-wal

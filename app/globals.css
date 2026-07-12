@@ -1,0 +1,131 @@
+@import "tailwindcss";
+
+:root {
+  --background: oklch(1 0 0);
+  --surface: oklch(0.968 0.006 330);
+  --surface-elevated: oklch(0.985 0.003 330);
+  --foreground: oklch(0.205 0.025 330);
+  --muted-foreground: oklch(0.46 0.018 330);
+  --primary: oklch(0.56 0.16 330);
+  --primary-strong: oklch(0.45 0.14 330);
+  --primary-soft: oklch(0.94 0.035 330);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.945 0.008 330);
+  --secondary-strong: oklch(0.91 0.012 330);
+  --border: oklch(0.89 0.008 330);
+  --input: oklch(0.82 0.012 330);
+  --success: oklch(0.50 0.105 175);
+  --success-strong: oklch(0.36 0.08 175);
+  --success-soft: oklch(0.93 0.035 175);
+  --warning: oklch(0.66 0.14 78);
+  --warning-strong: oklch(0.39 0.09 70);
+  --warning-soft: oklch(0.94 0.045 82);
+  --danger: oklch(0.54 0.18 25);
+  --danger-strong: oklch(0.42 0.16 25);
+  --danger-soft: oklch(0.94 0.04 25);
+  --ink: oklch(0.205 0.025 330);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-foreground: var(--foreground);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-primary: var(--primary);
+  --color-primary-strong: var(--primary-strong);
+  --color-primary-soft: var(--primary-soft);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-strong: var(--secondary-strong);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-success: var(--success);
+  --color-success-strong: var(--success-strong);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-strong: var(--warning-strong);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-strong: var(--danger-strong);
+  --color-danger-soft: var(--danger-soft);
+  --color-ink: var(--ink);
+  --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --shadow-dialog: 0 18px 50px oklch(0.2 0.02 330 / 0.22);
+  --z-index-dropdown: 20;
+  --z-index-sticky: 30;
+  --z-index-modal-backdrop: 40;
+  --z-index-modal: 50;
+  --z-index-toast: 60;
+}
+
+* {
+  border-color: var(--border);
+}
+
+html {
+  background: var(--background);
+}
+
+body {
+  min-height: 100vh;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  text-rendering: optimizeLegibility;
+}
+
+button,
+a,
+input,
+select {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+}
+
+p {
+  text-wrap: pretty;
+}
+
+::selection {
+  background: var(--primary-soft);
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes dialog-in {
+  from { opacity: 0; transform: translate(-50%, -48%) scale(0.98); }
+  to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+.animate-fade-in { animation: fade-in 180ms ease-out; }
+.animate-dialog-in { animation: dialog-in 180ms cubic-bezier(0.16, 1, 0.3, 1); }
+.tabular-nums { font-variant-numeric: tabular-nums; }
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
